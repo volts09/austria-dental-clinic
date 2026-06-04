@@ -4,8 +4,8 @@
   "description": "Austria Medical & Dental Clinic — 3714 Bautista St., Palanan, Makati",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1a3a8f",
-  "theme_color": "#1a3a8f",
+  "background_color": "#3B82F6",
+  "theme_color": "#3B82F6",
   "orientation": "portrait-primary",
   "icons": [
     {
