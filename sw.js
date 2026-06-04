@@ -1,51 +1,54 @@
 // ── Austria Medical & Dental Clinic — Service Worker ──────────────────────────
-const CACHE_NAME = 'austria-dental-v2';
-const ASSETS = [
-  './index.html',
-  './manifest.json'
-];
+const CACHE_NAME = 'austria-dental-v3';
 
-// Install — cache core assets
+// Install
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
-  );
-  // Don't skip waiting — let the update banner handle it
+  self.skipWaiting(); // activate new SW immediately
 });
 
 // Activate — clean up old caches
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
-      )
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
-// Fetch — network first, fall back to cache
+// Fetch — ALWAYS network-first for HTML so updates show immediately.
+// Falls back to cache only when offline.
 self.addEventListener('fetch', e => {
   if(e.request.method !== 'GET') return;
   if(e.request.url.includes('supabase.co')) return;
 
-  e.respondWith(
-    fetch(e.request)
-      .then(res => {
-        if(res && res.status === 200){
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
-        }
-        return res;
-      })
-      .catch(() => caches.match(e.request))
-  );
-});
+  const isHTML = e.request.mode === 'navigate' ||
+                 e.request.destination === 'document' ||
+                 e.request.url.endsWith('.html') ||
+                 e.request.url.endsWith('/');
 
-// Listen for skipWaiting message from update banner
-self.addEventListener('message', e => {
-  if(e.data && e.data.action === 'skipWaiting'){
-    self.skipWaiting();
+  if(isHTML){
+    // Network first for the app itself
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' })
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+  } else {
+    // Cache-first for static assets (icons, etc.)
+    e.respondWith(
+      caches.match(e.request).then(cached =>
+        cached || fetch(e.request).then(res => {
+          if(res && res.status === 200){
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(c => c.put(e.request, clone));
+          }
+          return res;
+        }).catch(() => cached)
+      )
+    );
   }
 });
