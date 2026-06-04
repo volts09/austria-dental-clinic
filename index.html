@@ -792,33 +792,6 @@ a{color:#2563EB;text-decoration:none}
     <div style="margin-top:4px">${new Date().toLocaleDateString('en-PH',{year:'numeric',month:'long',day:'numeric'})}</div>
   </div>
 </div>
-
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
-(function(){
-  var _sw = null;
-  window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
-      });
-    });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
-})();
-</script>
 </body></html>`;
 }
 
@@ -1484,6 +1457,11 @@ function initBranchName(){
 function updateBranchBadge(name){
   const badge = document.getElementById('branchBadge');
   const label = document.getElementById('branchNameBadge');
+  // Branch badge removed for single-clinic version — guard against null
+  if(!badge || !label){
+    document.title = 'Austria Medical & Dental Clinic';
+    return;
+  }
   if(name){
     label.textContent = '🏢 ' + name;
     badge.style.display = 'flex';
@@ -1827,18 +1805,20 @@ async function doLogin(){
       _appUnlocked  = true;
       // No logging — no trace in localStorage, no Supabase record
       localStorage.removeItem('austria_last_dev_access'); // clean any previous
-      document.getElementById('loginScreen').style.display = 'none';
-      document.querySelector('.topbar').style.display      = 'flex';
-      document.querySelector('.sidebar').style.display     = 'flex';
-      document.getElementById('userBadge').style.display   = 'flex';
-      document.getElementById('userNameLabel').textContent = 'Owner'; // looks normal
-      document.getElementById('userRoleBadge').textContent = 'Owner';
-      document.getElementById('userRoleBadge').style.cssText = 'padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#059669;color:#fff';
-      initBranchName();
-      buildNav();
+      try{ document.getElementById('loginScreen').style.display = 'none'; }catch(e){}
+      try{ document.querySelector('.topbar').style.display      = 'flex'; }catch(e){}
+      try{ document.querySelector('.sidebar').style.display     = 'flex'; }catch(e){}
+      try{ document.getElementById('userBadge').style.display   = 'flex'; }catch(e){}
+      try{ document.getElementById('userNameLabel').textContent = 'Owner'; }catch(e){}
+      try{
+        document.getElementById('userRoleBadge').textContent = 'Owner';
+        document.getElementById('userRoleBadge').style.cssText = 'padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:#059669;color:#fff';
+      }catch(e){}
+      try{ initBranchName(); }catch(e){}
+      try{ buildNav(); }catch(e){}
       try{ _startNotifChecks(); }catch(e){}
       try{ _resetIdleTimer(); }catch(e){}
-      await syncFromCloud(); // pull all data from Supabase
+      try{ await syncFromCloud(); }catch(e){} // pull all data from Supabase
       return;
     }
     // ─────────────────────────────────────────────────────────────────────────
@@ -1892,7 +1872,7 @@ async function doLogin(){
     }
 
     // Hide login screen FIRST
-    document.getElementById('loginScreen').style.display = 'none';
+    try{ document.getElementById('loginScreen').style.display = 'none'; }catch(e2){}
     if(loginBtn){ loginBtn.textContent = 'Sign In →'; loginBtn.disabled = false; }
 
     try{
@@ -1909,8 +1889,8 @@ async function doLogin(){
     }catch(e2){}
 
     // Show sidebar and topbar
-    document.querySelector('.sidebar').style.display = 'flex';
-    document.querySelector('.topbar').style.display  = 'flex';
+    try{ document.querySelector('.sidebar').style.display = 'flex'; }catch(e2){}
+    try{ document.querySelector('.topbar').style.display  = 'flex'; }catch(e2){}
 
     // Apply clinic name
     try{
@@ -4359,34 +4339,7 @@ function printReceipt(id){
     <button onclick="window.print()" style="background:#1a3a8f;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:14px;font-weight:bold;cursor:pointer;margin-right:8px">🖨 Print Receipt</button>
     <button onclick="window.close()" style="background:#F1F5F9;color:#374151;border:1.5px solid #E2EBF4;padding:10px 18px;border-radius:8px;font-size:13px;cursor:pointer">✕ Close</button>
   </div>
-  
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
-(function(){
-  var _sw = null;
-  window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
-      });
-    });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
-})();
-</script>
-</body></html>`);
+  </body></html>`);
 }
 
 // ── PRINT INVOICE (A4) ────────────────────────────────────────────────────────
@@ -4501,34 +4454,7 @@ function printInvoice(id){
       <button onclick="window.close()" style="background:#F1F5F9;color:#374151;border:1.5px solid #E2EBF4;padding:12px 18px;border-radius:8px;font-size:14px;cursor:pointer">✕ Close</button>
     </div>
     <style>@media print{.no-print{display:none!important}}</style>
-  
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
-(function(){
-  var _sw = null;
-  window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
-      });
-    });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
-})();
-</script>
-</body></html>`);
+  </body></html>`);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -6340,34 +6266,7 @@ function printPatientQR(id, name){
   const autoClose=_isIOS?'':`<script>window.onload=function(){window.print();window.close();}<\/script>`;
   const printBtn=_isIOS?`<br><button onclick="window.print()" style="background:#1a3a8f;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:12px">🖨 Print</button>`:'';
   _openPrint(`<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;text-align:center;padding:30px;}img{width:200px;height:200px;}.card{border:2px solid #1a3a8f;border-radius:12px;padding:24px;display:inline-block;}h2{color:#1a3a8f;margin:10px 0 4px;}p{color:#666;font-size:13px;margin:2px}@media print{@page{size:A6;margin:5mm;}}</style></head><body>
-<div class="card"><div style="font-size:28px">🦷</div><img src="${src}"><h2>${name}</h2><p>Patient ID: ${id}</p><p style="font-size:11px;color:#999;margin-top:6px">Austria Medical & Dental Clinic</p></div>${printBtn}${autoClose}
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
-(function(){
-  var _sw = null;
-  window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
-      });
-    });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
-})();
-</script>
-</body></html>`);
+<div class="card"><div style="font-size:28px">🦷</div><img src="${src}"><h2>${name}</h2><p>Patient ID: ${id}</p><p style="font-size:11px;color:#999;margin-top:6px">Austria Medical & Dental Clinic</p></div>${printBtn}${autoClose}</body></html>`);
 }
 
 function downloadPatientQR(id, name){
@@ -6710,34 +6609,7 @@ function printXray(xid){
   <img src="${x.image}" crossorigin="anonymous">
   <div class="footer">${cl.name} · Printed: ${new Date().toLocaleString('en-PH')}</div>
   <button onclick="window.print()" style="background:#1a3a8f;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:16px">🖨 Print</button>
-  
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
-(function(){
-  var _sw = null;
-  window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
-      });
-    });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
-})();
-</script>
-</body></html>`);
+  </body></html>`);
 }
 
 function downloadXray(xid){
@@ -6881,34 +6753,7 @@ function printPatientHistory(pid){
     Generated: ${new Date().toLocaleString('en-PH')} &nbsp;·&nbsp; Austria Medical & Dental Clinic &nbsp;·&nbsp; 3714 Bautista St., Palanan, Makati
   </div>
   <button class="print-btn" onclick="window.print()">🖨 Print Patient History</button>
-  
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
-(function(){
-  var _sw = null;
-  window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
-      });
-    });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
-})();
-</script>
-</body></html>`);
+  </body></html>`);
 }
 
 function showPatientQR(id){
@@ -7076,33 +6921,6 @@ ${allergyBlock}
   <div class="row"><div><div class="lbl">Next Appointment</div></div><div class="val">${nextApt ? `${esc(cleanDate(nextApt[1].date))} — ${esc(nextApt[1].type||'—')}` : 'None'}</div></div>
 </div>
 <footer>🦷 Austria Medical & Dental Clinic &nbsp;·&nbsp; ${new Date().toLocaleDateString('en-PH')}</footer>
-
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
-(function(){
-  var _sw = null;
-  window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
-      });
-    });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
-})();
-</script>
 </body></html>`;
   return html;
 }
@@ -7193,34 +7011,7 @@ function printQR(id,name){
   const ac=_isIOS?'':`<script>window.onload=function(){window.print();window.close();}<\/script>`;
   const pb=_isIOS?`<br><button onclick="window.print()" style="background:#1a3a8f;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;margin-top:12px">🖨 Print</button>`:'';
   _openPrint(`<!DOCTYPE html><html><head><style>body{font-family:Arial,sans-serif;text-align:center;padding:24px}.card{border:2px solid #1a3a8f;border-radius:12px;padding:20px;display:inline-block}h2{color:#1a3a8f;margin:8px 0 2px}p{color:#666;font-size:12px;margin:2px}@media print{@page{size:A6;margin:4mm}}</style></head><body>
-<div class="card"><div style="font-size:24px">🦷</div><img src="${src}" style="width:180px;height:180px" crossorigin="anonymous"><h2>${name}</h2><p>ID: ${id}</p><p style="font-size:10px;color:#999;margin-top:6px">Austria Medical & Dental Clinic</p></div>${pb}${ac}
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
-(function(){
-  var _sw = null;
-  window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
-      });
-    });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
-})();
-</script>
-</body></html>`);
+<div class="card"><div style="font-size:24px">🦷</div><img src="${src}" style="width:180px;height:180px" crossorigin="anonymous"><h2>${name}</h2><p>ID: ${id}</p><p style="font-size:10px;color:#999;margin-top:6px">Austria Medical & Dental Clinic</p></div>${pb}${ac}</body></html>`);
 }
 
 function dlQR(id,name){
@@ -7747,34 +7538,7 @@ function printPatientCard(id){
     <button onclick="window.close()" style="background:#F1F5F9;color:#374151;border:1.5px solid #E2EBF4;padding:12px 20px;border-radius:8px;font-size:14px;cursor:pointer">✕ Close</button>
   </div>
   <style>@media print{.no-print{display:none!important}}</style>
-  
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
-(function(){
-  var _sw = null;
-  window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
-      });
-    });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
-})();
-</script>
-</body></html>${_pcAc}`);
+  </body></html>${_pcAc}`);
 }
 
 // ── Scroll hint: show ›› arrow when table is wider than its container ─────────
@@ -8623,32 +8387,33 @@ document.addEventListener('visibilitychange', function(){
     ? '⚠ Please return to Austria Medical & Dental Clinic'
     : 'Austria Medical & Dental Clinic';
 });
-</script>
 
-<!-- ── Update Banner (injected once) ──────────────────────────────────────── -->
-<div id="swUpdateBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #FFD700;align-items:center;gap:12px;font-size:13px;font-weight:500;">
-  <span>🆕 A new update is available!</span>
-  <button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">Refresh Now</button>
-  <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;">✕</button>
-</div>
-<script>
+// ── Update Banner (service worker) ────────────────────────────────────────────
 (function(){
   var _sw = null;
   window._applySwUpdate = function(){ if(_sw) _sw.postMessage({action:'skipWaiting'}); window.location.reload(); };
-  if(!('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
-  navigator.serviceWorker.ready.then(function(reg){
-    reg.addEventListener('updatefound', function(){
-      _sw = reg.installing;
-      _sw.addEventListener('statechange', function(){
-        if(_sw.state === 'installed' && navigator.serviceWorker.controller){
-          var b = document.getElementById('swUpdateBanner');
-          if(b) b.style.display = 'flex';
-        }
+  function _showBanner(){
+    if(document.getElementById('swUpdateBanner')) return;
+    var b = document.createElement('div');
+    b.id = 'swUpdateBanner';
+    b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#1a3a8f;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #2550c7;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:500';
+    b.innerHTML = '<span>🆕 A new update is available!</span>'
+      + '<button onclick="_applySwUpdate()" style="background:#fff;color:#1a3a8f;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px">Refresh Now</button>'
+      + '<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px">✕</button>';
+    document.body.appendChild(b);
+  }
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.addEventListener('controllerchange', function(){ window.location.reload(); });
+    navigator.serviceWorker.ready.then(function(reg){
+      reg.addEventListener('updatefound', function(){
+        _sw = reg.installing;
+        _sw.addEventListener('statechange', function(){
+          if(_sw.state === 'installed' && navigator.serviceWorker.controller) _showBanner();
+        });
       });
+      setInterval(function(){ reg.update(); }, 60000);
     });
-    setInterval(function(){ reg.update(); }, 60000);
-  });
+  }
 })();
 </script>
 </body>
