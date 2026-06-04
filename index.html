@@ -414,6 +414,7 @@ select.form-control{cursor:pointer;}
       <input type="file" accept=".csv" onchange="importBackup(event)" style="display:none">
     </label>
     <button onclick="(isAdmin()||isOwner())&&changePassword()" id="changePwBtn" style="width:100%;padding:7px;background:#374151;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;margin-bottom:6px;">🔑 Change Password</button>
+    <button onclick="doLogout()" style="width:100%;padding:8px;background:#DC2626;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:6px;">⏻ Logout</button>
     <div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.1);padding-top:8px;">© 2026 Austria Medical & Dental Clinic</div>
   </div>
 </nav>
