@@ -7833,20 +7833,47 @@ function _renderCalendar(){
     }
   }
 
-  // Calendar body: agenda for day view, hourly grid for week view
-  const calendarBody = viewMode==='day'
-    ? `<div class="table-wrap" style="overflow:hidden">${dayAgendaHtml}</div>`
-    : `<div class="table-wrap" style="overflow-x:auto">
-        <table style="width:100%;border-collapse:collapse;min-width:600px">
-          <thead>
-            <tr>
-              <th style="width:60px;background:var(--bg);border-right:2px solid var(--border);border-bottom:2px solid var(--border)"></th>
-              ${showDays.map((d,i)=>`<th style="width:${colW};padding:0;border-right:1px solid var(--border);border-bottom:2px solid var(--border);background:var(--bg)">${_dayHeaderHtml(d)}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>${gridRows}</tbody>
-        </table>
+  // Calendar body: agenda for day view, compact 7-day columns for week view
+  let calendarBody;
+  if(viewMode==='day'){
+    calendarBody = `<div class="table-wrap" style="overflow:hidden">${dayAgendaHtml}</div>`;
+  } else {
+    // Week view — one column per day, listing that day's appointments (no empty hours)
+    const DAY_NAMES2 = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const weekCols = days.map((d,i)=>{
+      const dStr = _fmtDate(d);
+      const isToday = dStr===today;
+      const dayApts = Object.entries(apts)
+        .filter(([id,a])=>{
+          if(branch && a.branch && a.branch!==branch) return false;
+          if(selDentist && a.dentist!==selDentist) return false;
+          return cleanDate(a.date)===dStr;
+        })
+        .sort((x,y)=>(x[1].time||'').localeCompare(y[1].time||''));
+
+      const cards = dayApts.map(([id,a])=>{
+        const col = STATUS_COLORS[a.status] || {bg:'#F1F5F9',border:'#94A3B8',text:'#475569'};
+        return `<div onclick="editApt('${id}')" style="background:${col.bg};border-left:3px solid ${col.border};border-radius:5px;padding:5px 7px;margin-bottom:5px;cursor:pointer;font-size:11px;line-height:1.4">
+          <div style="font-weight:800;color:${col.text}">${a.time||'—'}</div>
+          <div style="font-weight:700;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${pName(a, pts)}</div>
+          <div style="color:${col.text};opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.type||'—'}</div>
+        </div>`;
+      }).join('') || `<div style="text-align:center;color:var(--muted);font-size:11px;padding:12px 0;opacity:.6">—</div>`;
+
+      return `<div style="flex:1;min-width:130px;border-right:1px solid var(--border);${isToday?'background:rgba(37,99,235,0.04)':''}">
+        <div style="text-align:center;padding:8px 4px;border-bottom:2px solid ${isToday?'var(--blue)':'var(--border)'};background:${isToday?'var(--blue-pale)':'var(--bg)'}">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:${isToday?'var(--blue)':'var(--muted)'}">${DAY_NAMES2[i]}</div>
+          <div style="font-size:18px;font-weight:900;color:${isToday?'var(--blue)':'var(--navy)'}">${d.getDate()}</div>
+          <div style="font-size:9px;color:var(--muted)">${d.toLocaleDateString('en-PH',{month:'short'})}</div>
+        </div>
+        <div style="padding:6px">${cards}</div>
       </div>`;
+    }).join('');
+
+    calendarBody = `<div class="table-wrap" style="overflow-x:auto">
+      <div style="display:flex;min-width:700px">${weekCols}</div>
+    </div>`;
+  }
 
   document.getElementById('main').innerHTML = `
     <div class="section-header">
