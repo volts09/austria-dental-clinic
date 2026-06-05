@@ -7695,7 +7695,11 @@ function _renderCalendar(){
   // Week label
   const wStart = days[0];
   const wEnd   = days[6];
-  const wLabel = `${wStart.toLocaleDateString('en-PH',{month:'short',day:'numeric'})} – ${wEnd.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}`;
+  const _viewModeForLabel = document.getElementById('calViewMode')?.value || 'day';
+  const _dayShown = days.find(d=>_fmtDate(d)===today) || days[0];
+  const wLabel = _viewModeForLabel==='day'
+    ? _dayShown.toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric',year:'numeric'})
+    : `${wStart.toLocaleDateString('en-PH',{month:'short',day:'numeric'})} – ${wEnd.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}`;
 
   // Build dentist filter
   const dentistFilter = `
@@ -7714,7 +7718,9 @@ function _renderCalendar(){
 
   const selDentist = document.getElementById('calDentistFilter')?.value || '';
   const viewMode   = document.getElementById('calViewMode')?.value || 'day';
-  const showDays   = viewMode==='day' ? [days[Math.max(0,days.findIndex(d=>_fmtDate(d)===today)||0)||0]] : days;
+  // Day view: show today if in this week, else the first day of the shown week
+  const _todayIdx  = days.findIndex(d=>_fmtDate(d)===today);
+  const showDays   = viewMode==='day' ? [ _todayIdx>=0 ? days[_todayIdx] : days[0] ] : days;
 
   // Day columns header
   const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
