@@ -7641,9 +7641,23 @@ document.getElementById('loginUser').focus();
 // ══════════════════════════════════════════════════════════════════════════════
 
 let _calWeekOffset = 0; // 0 = current week
+let _calMonthOffset = 0; // 0 = current month
 
 function showCalendar(){
   _calWeekOffset = 0;
+  _calMonthOffset = 0;
+  _renderCalendar();
+}
+
+// Navigate prev/next/today based on current view mode
+function _calNav(dir){
+  const mode = document.getElementById('calViewMode')?.value || 'day';
+  if(dir===0){ _calWeekOffset = 0; _calMonthOffset = 0; _renderCalendar(); return; }
+  if(mode==='month'){
+    _calMonthOffset += dir;
+  } else {
+    _calWeekOffset += dir; // day and week both step by week
+  }
   _renderCalendar();
 }
 
@@ -7698,8 +7712,11 @@ function _renderCalendar(){
   const wEnd   = days[6];
   const _viewModeForLabel = document.getElementById('calViewMode')?.value || 'day';
   const _dayShown = days.find(d=>_fmtDate(d)===today) || days[0];
+  const _monthDate = new Date(); _monthDate.setMonth(_monthDate.getMonth() + _calMonthOffset);
   const wLabel = _viewModeForLabel==='day'
     ? _dayShown.toLocaleDateString('en-PH',{weekday:'long',month:'long',day:'numeric',year:'numeric'})
+    : _viewModeForLabel==='month'
+    ? _monthDate.toLocaleDateString('en-PH',{month:'long',year:'numeric'})
     : `${wStart.toLocaleDateString('en-PH',{month:'short',day:'numeric'})} – ${wEnd.toLocaleDateString('en-PH',{month:'short',day:'numeric',year:'numeric'})}`;
 
   // Build dentist filter
@@ -7714,6 +7731,7 @@ function _renderCalendar(){
         style="padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none;color:var(--navy)">
         <option value="day">Day View</option>
         <option value="week">Week View</option>
+        <option value="month">Month View</option>
       </select>
     </div>`;
 
@@ -7835,7 +7853,53 @@ function _renderCalendar(){
 
   // Calendar body: agenda for day view, compact 7-day columns for week view
   let calendarBody;
-  if(viewMode==='day'){
+  if(viewMode==='month'){
+    // ── Month View — traditional calendar grid with appointment dots/counts ──
+    const mDate = new Date(); mDate.setMonth(mDate.getMonth() + _calMonthOffset);
+    const year = mDate.getFullYear();
+    const month = mDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const startDay = firstDay.getDay(); // 0=Sun
+    const startOffset = startDay===0 ? 6 : startDay-1; // make Monday first
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+
+    // Build day cells (include leading blanks)
+    let cells = [];
+    for(let i=0;i<startOffset;i++) cells.push(null);
+    for(let dd=1; dd<=daysInMonth; dd++) cells.push(dd);
+    while(cells.length % 7 !== 0) cells.push(null);
+
+    const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const headerRow = DOW.map(n=>`<div style="text-align:center;padding:8px 4px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;background:var(--bg)">${n}</div>`).join('');
+
+    const cellHtml = cells.map(dd=>{
+      if(dd===null) return `<div style="border:1px solid var(--border);background:#fafafa;min-height:84px"></div>`;
+      const dStr = `${year}-${String(month+1).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+      const isToday = dStr===today;
+      const dayApts = Object.entries(apts).filter(([id,a])=>{
+        if(branch && a.branch && a.branch!==branch) return false;
+        if(selDentist && a.dentist!==selDentist) return false;
+        return cleanDate(a.date)===dStr;
+      }).sort((x,y)=>(x[1].time||'').localeCompare(y[1].time||''));
+
+      const chips = dayApts.slice(0,3).map(([id,a])=>{
+        const col = STATUS_COLORS[a.status] || {bg:'#F1F5F9',border:'#94A3B8',text:'#475569'};
+        return `<div onclick="event.stopPropagation();editApt('${id}')" style="background:${col.bg};border-left:2px solid ${col.border};border-radius:3px;padding:1px 4px;margin-bottom:2px;font-size:9px;font-weight:600;color:${col.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer">${a.time||''} ${pName(a, pts)}</div>`;
+      }).join('');
+      const more = dayApts.length>3 ? `<div style="font-size:9px;color:var(--blue);font-weight:700">+${dayApts.length-3} more</div>` : '';
+
+      return `<div onclick="_calWeekOffset=Math.round((new Date('${dStr}T00:00:00') - new Date(_fmtDate(new Date())+'T00:00:00'))/(7*864e5));document.getElementById('calViewMode').value='day';_renderCalendar()"
+        style="border:1px solid var(--border);min-height:84px;padding:4px;cursor:pointer;${isToday?'background:rgba(37,99,235,0.06)':'background:#fff'}">
+        <div style="font-size:12px;font-weight:${isToday?'900':'700'};color:${isToday?'#fff':'var(--navy)'};${isToday?'background:var(--blue);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center':''};margin-bottom:3px">${dd}</div>
+        ${chips}${more}
+      </div>`;
+    }).join('');
+
+    calendarBody = `<div class="table-wrap" style="overflow:hidden;padding:0">
+      <div style="display:grid;grid-template-columns:repeat(7,1fr)">${headerRow}</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr)">${cellHtml}</div>
+    </div>`;
+  } else if(viewMode==='day'){
     calendarBody = `<div class="table-wrap" style="overflow:hidden">${dayAgendaHtml}</div>`;
   } else {
     // Week view — one column per day, listing that day's appointments (no empty hours)
@@ -7880,10 +7944,10 @@ function _renderCalendar(){
       <div class="section-title" style="font-family:var(--font-serif)">🗓 Appointment Calendar</div>
       <div class="btn-row">
         ${dentistFilter}
-        <button class="btn btn-secondary btn-sm" onclick="_calWeekOffset--;_renderCalendar()">‹ Prev</button>
+        <button class="btn btn-secondary btn-sm" onclick="_calNav(-1)">‹ Prev</button>
         <button class="btn btn-sm" style="background:var(--blue-pale);color:var(--blue);font-weight:700"
-          onclick="_calWeekOffset=0;_renderCalendar()">Today</button>
-        <button class="btn btn-secondary btn-sm" onclick="_calWeekOffset++;_renderCalendar()">Next ›</button>
+          onclick="_calNav(0)">Today</button>
+        <button class="btn btn-secondary btn-sm" onclick="_calNav(1)">Next ›</button>
         <button class="btn btn-primary btn-sm" onclick="addApt()">＋ Add</button>
       </div>
     </div>
@@ -8488,31 +8552,45 @@ document.addEventListener('visibilitychange', function(){
     if(document.getElementById('swUpdateBanner')) return;
     var b = document.createElement('div');
     b.id = 'swUpdateBanner';
-    b.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:#0F2A5C;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);border:2px solid #4F9CF9;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:500';
+    b.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#0F2A5C;color:#fff;padding:12px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.45);border:2px solid #4F9CF9;display:flex;align-items:center;gap:12px;font-size:13px;font-weight:500;max-width:92vw';
     b.innerHTML = '<span>🆕 A new update is available!</span>'
       + '<button onclick="_applySwUpdate()" style="background:#fff;color:#0F2A5C;border:none;padding:7px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px">Refresh Now</button>'
       + '<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,0.15);color:#fff;border:none;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px">✕</button>';
     document.body.appendChild(b);
   }
-  // Track the current version of index.html via its ETag / Last-Modified header.
-  // When you upload a new index.html to GitHub, this changes and the banner shows.
-  var _baselineTag = null;
+  // Detect a new index.html by its ETag / Last-Modified header.
+  // We remember the last-seen version in localStorage so an update is detected
+  // even right after the page loads (cached SW vs newer file on the server).
   var _url = location.pathname.split('?')[0];
+  var _LS_KEY = 'austria_app_version';
   function _check(){
-    if(document.hidden) return; // only check when tab is visible
-    fetch(_url + '?_v=' + Date.now(), { method:'HEAD', cache:'no-store' })
+    if(document.hidden) return;
+    fetch(_url + '?_v=' + Date.now(), { method:'GET', cache:'no-store' })
       .then(function(r){
         var tag = r.headers.get('etag') || r.headers.get('last-modified') || '';
-        if(!tag) return;
-        if(_baselineTag === null){ _baselineTag = tag; return; }
-        if(tag !== _baselineTag){ _showBanner(); }
+        return r.text().then(function(txt){
+          // Use header tag if present, else a quick hash of the file as the version
+          var ver = tag;
+          if(!ver){
+            var h=0; for(var i=0;i<txt.length;i+=997){ h=(h*31 + txt.charCodeAt(i))|0; } ver = String(h)+':'+txt.length;
+          }
+          var seen = null;
+          try{ seen = localStorage.getItem(_LS_KEY); }catch(e){}
+          if(seen === null){
+            // First run on this device — record current version, no banner
+            try{ localStorage.setItem(_LS_KEY, ver); }catch(e){}
+            return;
+          }
+          if(ver !== seen){
+            try{ localStorage.setItem(_LS_KEY, ver); }catch(e){}
+            _showBanner();
+          }
+        });
       })
       .catch(function(){});
   }
-  // First check sets the baseline; subsequent checks compare against it
   _check();
   setInterval(_check, 90000); // every 90 seconds
-  // Also check when the user returns to the tab
   document.addEventListener('visibilitychange', function(){
     if(!document.hidden) _check();
   });
